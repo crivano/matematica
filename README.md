@@ -1,6 +1,3 @@
-# matematica
-Algorítmos Humanos para as Operações Básicas das Matemática
-
 <canvas id="myCanvas" width="800" height="800"
 style="border:1px solid #d3d3d3;">
 Your browser does not support the canvas element.
