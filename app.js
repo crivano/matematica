@@ -122,8 +122,8 @@ var calcBounds = function(opr) {
 var app = angular.module('myApp', []);
 app.controller('myCtrl', function($scope, $interval, $timeout) {
     $scope.operation = '+';
-    $scope.a = '99123';
-    $scope.b = '189';
+    $scope.a = Math.random() > 0.5 ? '2005' : '2012';
+    $scope.b = '1997';
 
     $scope.formula = function() {
         return $scope.a + $scope.operation + $scope.b;
