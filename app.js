@@ -108,24 +108,24 @@ var drawSum = function(a, b) {
     drawNumber(2, 0, "+", false, CLR_TEXT, 10);
 
     var dR = '0';
-    for (var i = lenA; i >= 0; i--) {
-        var uA = i > 0 ? sA.substring(i - 1, i) : '0';
-        var uB = i > lenA - lenB ? sB.substring(i - 1, i) : '0';
+    for (var i = 0; i <= lenA; i++) {
+        var uA = i < lenA ? sA.substring(lenA - i - 1, lenA - i) : '0';
+        var uB = i < lenB ? sB.substring(lenB - i - 1, lenB - i) : '0';
         if (dR != '0')
-            drawNumber(0, i, dR, true, CLR_PROCESSING, 0);
-        if (i > 0 || uA != '0')
-            drawNumber(1, i, uA, false, CLR_PROCESSING, 0);
-        if (i > lenA - lenB || uB != '0')
-            drawNumber(2, i, uB, false, CLR_PROCESSING, 10);
+            drawNumber(0, lenA - i, dR, true, CLR_PROCESSING, 0);
+        if (i < lenA || uA != '0')
+            drawNumber(1, lenA - i, uA, false, CLR_PROCESSING, 0);
+        if (i < lenB || uB != '0')
+            drawNumber(2, lenA - i, uB, false, CLR_PROCESSING, 10);
         var r = parseInt(uA) + parseInt(uB) + parseInt(dR);
         var sR = '' + r;
         var lenR = sR.length;
         var uR = sR.substring(lenR - 1, lenR);
         dR = lenR == 2 ? sR.substring(0, 1) : '0';
-        if (i > 0 || uR != '0')
-            drawNumber(3, i, uR, false, CLR_NEW, 10);
+        if (i < lenA || uR != '0')
+            drawNumber(3, lenA - i, uR, false, CLR_NEW, 10);
         if (dR != '0') {
-            drawNumber(0, i - 1, dR, true, CLR_NEW, 10);
+            drawNumber(0, lenA - i - 1, dR, true, CLR_NEW, 10);
         }
         eraseMarks(20);
     }
@@ -292,7 +292,7 @@ app.controller('myCtrl', function($scope, $interval, $timeout) {
         //  console.log("step");
         if (opr.length) {
             opr[0].func.apply(null, opr[0].params);
-            $scope.stop = $timeout($scope.step, opr[0].timeout * 10);
+            $scope.stop = $timeout($scope.step, opr[0].timeout * 100);
             opr = opr.slice(1);
         }
     }
