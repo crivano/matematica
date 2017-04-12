@@ -33,18 +33,21 @@
         </div>
         <div class="row row justify-content-md-center pt-3">
             <div class="col-12 col-md-auto">
-                <label for="exampleInputEmail1">Número</label>
-                <input type="text" class="form-control"  ng-model="a" placeholder="Número Natural">
-            </div>
-            <div class="col-12 col-md-auto">
                 <label for="exampleSelect1">Operação</label>
-                <select class="form-control"  ng-model="operation" >
-                  <option>+</option>
-                </select>
+                <select class="form-control" ng-model="operation">
+                <option value="+">Soma</option>
+                <option value="-">Subtração</option>
+                <!--<option value="×">Multiplicação</option>-->
+                <!--<option value="×">Divisão</option>-->
+            </select>
             </div>
             <div class="col-12 col-md-auto">
                 <label for="exampleInputEmail1">Número</label>
-                <input type="text" class="form-control"  ng-model="b"  placeholder="Número Natural">
+                <input type="text" class="form-control" ng-model="a" placeholder="Número Natural">
+            </div>
+            <div class="col-12 col-md-auto">
+                <label for="exampleInputEmail1">Número</label>
+                <input type="text" class="form-control" ng-model="b" placeholder="Número Natural">
             </div>
             </fieldset>
         </div>
