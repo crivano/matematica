@@ -144,38 +144,39 @@ var drawSubtraction = function(a, b) {
     drawLine(2, 0, lenA + 1, 2);
     drawNumber(2, 0, "-", false, CLR_TEXT, 10);
     var arr = [];
-    for (var i = 0; i <= lenA; i++) {
-        var uA = sA.substring(lenA - i - 1, lenA - i);
+    for (var i = lenA - 1; i >= 0; i--) {
         arr[i] = [];
     }
 
     var dR = '0';
-    for (var i = 0; i < lenA; i++) {
+    for (var i = lenA - 1; i >= 0; i--) {
         var uA;
         if (arr[i].length > 0) {
             uA = arr[i][arr[i].length - 1];
-            drawNumber(0, lenA - i, uA, true, CLR_PROCESSING, 0);
+            drawNumber(0, i, uA, true, CLR_PROCESSING, 0);
         } else {
-            uA = i < lenA ? sA.substring(lenA - i - 1, lenA - i) : '0';
-            drawNumber(1, lenA - i, uA, false, CLR_PROCESSING, 0);
+            uA = i > lenA ? sA.substring(i - 1, i) : '0';
+            drawNumber(1, i, uA, false, CLR_PROCESSING, 0);
         }
-        var uB = i < lenB ? sB.substring(lenB - i - 1, lenB - i) : '0';
-        if (i < lenB || uB != '0')
-            drawNumber(2, lenA - i, uB, false, CLR_PROCESSING, 10);
+        var uB = i > lenA - lenB ? sB.substring(i - 1 - lenA + lenB, i - 1 - lenA + lenB - i) : '0';
+        if (i > lenA - lenB || uB != '0')
+            drawNumber(2, i, uB, false, CLR_PROCESSING, 10);
         var r = parseInt(uA) - parseInt(uB);
+
+        // Pega emprestado
         if (r < 0) {
             r += 10;
-            for (var j = i + 1;; j++) {
-                drawNumber(1, lenA - j, "×", false, CLR_NEW, 10);
-                var uAe = sA.substring(lenA - j - 1, lenA - j);
+            for (var j = i - 1; j<0; j--) {
+                drawNumber(1, j, "×", false, CLR_NEW, 10);
+                var uAe = sA.substring(j - 1, j);
                 var uAn;
                 if (uAe != '0') {
                     uAn = (parseInt(uAe) - 1) + '';
                 } else {
                     uAn = '9';
                 }
-                arr[j].push(i < lenA ? uAn : '0')
-                drawNumber(0, lenA - j, uAn, true, CLR_NEW, 10);
+                arr[j].push(uAn)
+                drawNumber(0, j, uAn, true, CLR_NEW, 10);
                 if (uAn != '9')
                     break;
             }
