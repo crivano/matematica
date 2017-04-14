@@ -267,6 +267,7 @@ var drawMultiplication = function(a, b) {
             var uR = getVal(0 - iB, i);
             var uB = getVal(2, iB);
             var uA = getVal(1, i);
+            pause(10);
             var r = uA * uB + (uR || 0);
             if (i == lenA - 1)
                 write(4 + iB, i + iB, r, false, 10);
@@ -281,6 +282,9 @@ var drawMultiplication = function(a, b) {
             eraseMarks(20);
         }
     }
+
+    if (lenB == 1)
+        return;
 
     lenSum = lenB;
     while (get(3 + lenB, lenSum).hasOwnProperty('val'))
@@ -348,7 +352,7 @@ app.controller('myCtrl', function($scope, $interval, $timeout) {
 
         initCanvas();
         if ($scope.operation == "+") {
-            drawMultiplication(parseInt(a), parseInt(b));
+            drawSum(parseInt(a), parseInt(b));
         } else if ($scope.operation == "-") {
             drawSubtraction(parseInt(a), parseInt(b));
         } else if ($scope.operation == "×") {
@@ -379,7 +383,7 @@ app.controller('myCtrl', function($scope, $interval, $timeout) {
         //  console.log("step");
         if (opr.length) {
             opr[0].func.apply(null, opr[0].params);
-            $scope.stop = $timeout($scope.step, opr[0].timeout * 0);
+            $scope.stop = $timeout($scope.step, opr[0].timeout * 100);
             opr = opr.slice(1);
         }
     }
