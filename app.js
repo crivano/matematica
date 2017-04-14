@@ -1,10 +1,14 @@
-var calcScale = function(w) {
+var calcScale = function(bounds) {
+    var w = 800 / (bounds.right - bounds.left + 2);
     return {
+        X_OFFSET: -bounds.left * w,
+        Y_OFFSET: -bounds.top * w,
         NUMBER_WIDTH: w,
         LINE_HEIGTH: w,
         LINE_WIDTH_OFFSET: -w / 6,
         LINE_HEIGTH_OFFSET: w / 8,
-        SMALL_OFFSET: w / 6
+        SMALL_X_OFFSET: w / 6,
+        SMALL_Y_OFFSET: w / 6
     };
 }
 
@@ -36,13 +40,13 @@ var drawSigleDigit = function(digit, x, y, small, color) {
         ctx.font = scale.NUMBER_WIDTH + "px Arial";
     }
     ctx.fillStyle = color;
-    ctx.fillText(digit, x * scale.NUMBER_WIDTH + scale.NUMBER_WIDTH + (small ? scale.SMALL_OFFSET : 0), y * scale.LINE_HEIGTH + scale.LINE_HEIGTH);
+    ctx.fillText(digit, x * scale.NUMBER_WIDTH + scale.NUMBER_WIDTH + scale.X_OFFSET + (small ? scale.SMALL_X_OFFSET : 0), get(y).offset * scale.LINE_HEIGTH + (small ? scale.SMALL_Y_OFFSET : 0));
 }
 
 var drawSigleLine = function(x1, y1, x2, y2) {
     ctx.beginPath();
-    ctx.moveTo(x1 * scale.NUMBER_WIDTH + scale.NUMBER_WIDTH + scale.LINE_WIDTH_OFFSET, y1 * scale.LINE_HEIGTH + scale.LINE_HEIGTH + scale.LINE_HEIGTH_OFFSET);
-    ctx.lineTo(x2 * scale.NUMBER_WIDTH + scale.NUMBER_WIDTH + scale.LINE_WIDTH_OFFSET, y2 * scale.LINE_HEIGTH + scale.LINE_HEIGTH + scale.LINE_HEIGTH_OFFSET);
+    ctx.moveTo(x1 * scale.NUMBER_WIDTH + scale.NUMBER_WIDTH + scale.X_OFFSET + scale.LINE_WIDTH_OFFSET, get(y1).offset * scale.LINE_HEIGTH + scale.LINE_HEIGTH_OFFSET);
+    ctx.lineTo(x2 * scale.NUMBER_WIDTH + scale.NUMBER_WIDTH + scale.X_OFFSET + scale.LINE_WIDTH_OFFSET, get(y1).offset * scale.LINE_HEIGTH + scale.LINE_HEIGTH_OFFSET);
     ctx.stroke();
 }
 
@@ -91,136 +95,217 @@ var ctx = canvas.getContext("2d");
 
 var initCanvas = function() {
     opr = [];
+    arr = [];
+    dgt = [];
     ctx.fillStyle = CLR_TEXT;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-var drawSum = function(a, b) {
-    if (b > a)
-        b = [a, a = b][0];
-    var sA = '' + a;
-    var sB = '' + b;
-    var lenA = sA.length;
-    var lenB = sB.length;
-    drawNumber(1, 1, a, false, CLR_TEXT, 2);
-    drawNumber(2, lenA - lenB + 1, b, false, CLR_TEXT, 2);
-    drawLine(2, 0, lenA + 1, 2);
-    drawNumber(2, 0, "+", false, CLR_TEXT, 10);
+function isNumeric(n) {
+    return !isNaN(parseFloat(n)) && isFinite(n);
+}
 
-    var dR = '0';
-    for (var i = 0; i <= lenA; i++) {
-        var uA = i < lenA ? sA.substring(lenA - i - 1, lenA - i) : '0';
-        var uB = i < lenB ? sB.substring(lenB - i - 1, lenB - i) : '0';
-        if (dR != '0')
-            drawNumber(0, lenA - i, dR, true, CLR_PROCESSING, 0);
-        if (i < lenA || uA != '0')
-            drawNumber(1, lenA - i, uA, false, CLR_PROCESSING, 0);
-        if (i < lenB || uB != '0')
-            drawNumber(2, lenA - i, uB, false, CLR_PROCESSING, 10);
-        var r = parseInt(uA) + parseInt(uB) + parseInt(dR);
-        var sR = '' + r;
-        var lenR = sR.length;
-        var uR = sR.substring(lenR - 1, lenR);
-        dR = lenR == 2 ? sR.substring(0, 1) : '0';
-        if (i < lenA || uR != '0')
-            drawNumber(3, lenA - i, uR, false, CLR_NEW, 10);
-        if (dR != '0') {
-            drawNumber(0, lenA - i - 1, dR, true, CLR_NEW, 10);
+function charIsNumeric(c) {
+    return !isNaN(parseInt(c, 10));
+}
+
+var arr = [];
+var set = function(l, c, p, v) {
+    var o = get(l, c);
+    if (p == 'val')
+        if (charIsNumeric(v)) {
+            v = parseInt(v);
+        } else {
+            o[p] = undefined;
+            return;
         }
-        eraseMarks(20);
+    o[p] = v;
+    return o;
+}
+
+var get = function(l, c) {
+    var i = l + ',' + c;
+    arr[i] = arr[i] || {};
+    return arr[i];
+}
+var getVal = function(l, c) {
+    var v = get(l, c).val;
+    if (v !== undefined)
+        write(l, c, v, get(l).small, 0, CLR_PROCESSING);
+    return v;
+}
+var write = function(lin, col, num, small, timeout, color) {
+    var str = "" + num;
+    set(lin, undefined, 'small', small);
+    for (var i = 0; i < str.length; i++) {
+        var o = set(lin, str.length - i - 1 + col, 'val', str[i]);
+        opr.push({
+            func: drawSigleDigit,
+            params: [str[i], -col + i - str.length - 1, lin, small, color || CLR_NEW],
+            top: lin,
+            left: -col + i - str.length - 1,
+            bottom: lin,
+            right: -col + i - str.length - 1,
+            timeout: timeout || 0
+        });
     }
 }
 
+var line = function(lin, colFrom, colWidth, timeout) {
+    opr.push({
+        func: drawSigleLine,
+        params: [-colFrom - 1, lin, -colFrom - colWidth - 1, lin],
+        top: lin,
+        left: -colFrom - colWidth - 1,
+        bottom: lin,
+        right: -colFrom - 1,
+        timeout: timeout
+    });
+}
+
+var calcLineHeights = function(bounds) {
+    var t = 0;
+    for (var i = bounds.top; i <= bounds.bottom; i++) {
+        var o = get(i);
+        var h = 0;
+        if (o.hasOwnProperty('small')) {
+            h = o.small ? 0.5 : 1;
+        }
+        o.heigth = h;
+        t += h;
+        o.offset = t;
+    }
+}
+
+var doNothing = function() {};
+
+var pause = function(timeout) {
+    opr.push({
+        func: doNothing,
+        params: [],
+        timeout: timeout
+    });
+}
+
+
+var drawSum = function(a, b) {
+    if (b > a)
+        b = [a, a = b][0];
+    var lenA = ('' + a).length;
+    write(1, 0, a, false, 2, CLR_TEXT);
+    write(2, 0, b, false, 2, CLR_TEXT);
+    line(2, 0, lenA + 1, 2);
+    write(2, lenA, "+", false, 2, CLR_TEXT);
+    pause(20);
+
+    for (var i = 0; i <= lenA; i++) {
+        var uR = getVal(0, i);
+        var uA = getVal(1, i);
+        var uB = getVal(2, i);
+        pause(10);
+        var r = (uA || 0) + (uB || 0) + (uR || 0);
+        var uR = r % 10;
+        var dR = (r - uR) / 10;
+        if (i < lenA || uR != 0)
+            write(3, i, uR, false, 10);
+        if (dR != 0)
+            write(0, i + 1, dR, true, 10);
+        eraseMarks(20);
+    }
+}
 
 var drawSubtraction = function(a, b) {
     if (b > a)
         b = [a, a = b][0];
-    var sA = '' + a;
-    var sB = '' + b;
-    var lenA = sA.length;
-    var lenB = sB.length;
-    drawNumber(1, 1, a, false, CLR_TEXT, 2);
-    drawNumber(2, lenA - lenB + 1, b, false, CLR_TEXT, 2);
-    drawLine(2, 0, lenA + 1, 2);
-    drawNumber(2, 0, "-", false, CLR_TEXT, 10);
-    var arr = [];
-    for (var i = 0; i <= lenA; i++) {
-        var uA = sA.substring(lenA - i - 1, lenA - i);
-        arr[i] = [];
-    }
+    var lenA = ('' + a).length;
+    write(1, 0, a, false, 2, CLR_TEXT);
+    write(2, 0, b, false, 2, CLR_TEXT);
+    line(2, 0, lenA + 1, 2);
+    write(2, lenA, "-", false, 2, CLR_TEXT);
+    pause(20);
 
-    var dR = '0';
-    for (var i = 0; i < lenA; i++) {
-        var uA;
-        if (arr[i].length > 0) {
-            uA = arr[i][arr[i].length - 1];
-            drawNumber(0, lenA - i, uA, true, CLR_PROCESSING, 0);
-        } else {
-            uA = i < lenA ? sA.substring(lenA - i - 1, lenA - i) : '0';
-            drawNumber(1, lenA - i, uA, false, CLR_PROCESSING, 0);
-        }
-        var uB = i < lenB ? sB.substring(lenB - i - 1, lenB - i) : '0';
-        if (i < lenB || uB != '0')
-            drawNumber(2, lenA - i, uB, false, CLR_PROCESSING, 10);
-        var r = parseInt(uA) - parseInt(uB);
+    for (var i = 0; i <= lenA; i++) {
+        var uR = getVal(0, i);
+        var uA = getVal(1, i);
+        var uB = getVal(2, i);
+        pause(10);
+        var r = (uA || 0) + (uR || 0) - (uB || 0);
         if (r < 0) {
             r += 10;
             for (var j = i + 1;; j++) {
-                drawNumber(1, lenA - j, "×", false, CLR_NEW, 10);
-                var uAe = sA.substring(lenA - j - 1, lenA - j);
-                var uAn;
-                if (uAe != '0') {
-                    uAn = (parseInt(uAe) - 1) + '';
-                } else {
-                    uAn = '9';
-                }
-                arr[j].push(i < lenA ? uAn : '0')
-                drawNumber(0, lenA - j, uAn, true, CLR_NEW, 10);
-                if (uAn != '9')
+                var e = getVal(1, j);
+                write(1, j, "×", false, 10);
+                if (e > 0) {
+                    write(0, j, e - 1, 10);
                     break;
+                } else {
+                    write(0, j, 9, 10);
+                }
             }
         }
-        var sR = '' + r;
-        var lenR = sR.length;
-        drawNumber(3, lenA - i, sR, false, CLR_NEW, 10);
+        var uR = r % 10;
+        if (i < lenA || uR != 0)
+            write(3, i, uR, false, 10);
         eraseMarks(20);
     }
 }
 
+
 var drawMultiplication = function(a, b) {
     if (b > a)
         b = [a, a = b][0];
-    var sA = '' + a;
-    var sB = '' + b;
-    var lenA = sA.length;
-    var lenB = sB.length;
-    drawNumber(1, 1, a, false, CLR_TEXT, 2);
-    drawNumber(2, lenA - lenB + 1, b, false, CLR_TEXT, 2);
-    drawLine(2, 0, lenA + 1, 2);
-    drawNumber(2, 0, "×", false, CLR_TEXT, 10);
+    var lenA = ('' + a).length;
+    var lenB = ('' + b).length;
+    write(1, 0, a, false, 2, CLR_TEXT);
+    write(2, 0, b, false, 2, CLR_TEXT);
+    line(2, 0, lenA + 1, 2);
+    write(2, lenA, "×", false, 2, CLR_TEXT);
+    pause(20);
 
-    var dR = '0';
-    for (var i = 0; i < lenA; i++) {
-        var uA = i < lenA ? sA.substring(lenA - i - 1, lenA - i) : '0';
-        var uB = i < lenB ? sB.substring(lenB - i - 1, lenB - i) : '0';
-        if (dR != '0')
-            drawNumber(0, lenA - i, dR, true, CLR_PROCESSING, 0);
-        if (i < lenA || uA != '0')
-            drawNumber(1, lenA - i, uA, false, CLR_PROCESSING, 0);
-        if (i < lenB || uB != '0')
-            drawNumber(2, lenA - i, uB, false, CLR_PROCESSING, 10);
-        var r = parseInt(uA) + parseInt(uB) + parseInt(dR);
-        var sR = '' + r;
-        var lenR = sR.length;
-        var uR = sR.substring(lenR - 1, lenR);
-        dR = lenR == 2 ? sR.substring(0, 1) : '0';
-        if (i < lenA || uR != '0')
-            drawNumber(3, lenA - i, uR, false, CLR_NEW, 10);
-        if (dR != '0') {
-            drawNumber(0, lenA - i - 1, dR, true, CLR_NEW, 10);
+    for (var iB = 0; iB < lenB; iB++) {
+        for (var i = 0; i < lenA; i++) {
+            var uR = getVal(0 - iB, i);
+            var uB = getVal(2, iB);
+            var uA = getVal(1, i);
+            var r = uA * uB + (uR || 0);
+            if (i == lenA - 1)
+                write(4 + iB, i + iB, r, false, 10);
+            else {
+                var uR = r % 10;
+                var dR = (r - uR) / 10;
+                if (i < lenA || uR != 0)
+                    write(4 + iB, i + iB, uR, false, 10);
+                if (dR != 0)
+                    write(0 - iB, i + 1, dR, true, 10);
+            }
+            eraseMarks(20);
         }
+    }
+
+    lenSum = lenB;
+    while (get(3 + lenB, lenSum).hasOwnProperty('val'))
+        lenSum++;
+    line(3 + lenB, 0, lenSum + 1, 2);
+    write(3 + lenB, lenSum, "+", false, 2, CLR_TEXT);
+    pause(20);
+
+    for (var i = 0; i <= lenSum; i++) {
+        var uR = getVal(3, i);
+        var r = (uR || 0);
+        for (var iB = 0; iB < lenB; iB++) {
+            var uB = getVal(4 + iB, i);
+            r += (uB || 0);
+        }
+        pause(10);
+        var uR = r % 10;
+        var dR = (r - uR) / 10;
+        if (i < lenSum || uR != 0)
+            write(4 + lenB, i, uR, false, 10);
+        if (dR != 0)
+            write(3, i + 1, dR, true, 10);
         eraseMarks(20);
     }
+
 }
 
 var calcBounds = function(opr) {
@@ -263,7 +348,7 @@ app.controller('myCtrl', function($scope, $interval, $timeout) {
 
         initCanvas();
         if ($scope.operation == "+") {
-            drawSum(parseInt(a), parseInt(b));
+            drawMultiplication(parseInt(a), parseInt(b));
         } else if ($scope.operation == "-") {
             drawSubtraction(parseInt(a), parseInt(b));
         } else if ($scope.operation == "×") {
@@ -271,7 +356,9 @@ app.controller('myCtrl', function($scope, $interval, $timeout) {
         }
         if (opr.length > 0) {
             var bounds = calcBounds(opr);
-            scale = calcScale(800 / (bounds.right + 2))
+            calcLineHeights(bounds);
+            console.log(arr);
+            scale = calcScale(bounds);
         }
         $scope.step();
     }
@@ -292,7 +379,7 @@ app.controller('myCtrl', function($scope, $interval, $timeout) {
         //  console.log("step");
         if (opr.length) {
             opr[0].func.apply(null, opr[0].params);
-            $scope.stop = $timeout($scope.step, opr[0].timeout * 100);
+            $scope.stop = $timeout($scope.step, opr[0].timeout * 0);
             opr = opr.slice(1);
         }
     }
