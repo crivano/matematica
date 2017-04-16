@@ -92,11 +92,13 @@ var eraseMarks = function(timeout) {
 
 var canvas = document.getElementById("myCanvas");
 var ctx = canvas.getContext("2d");
+var delay = 100;
 
 var initCanvas = function() {
     opr = [];
     arr = [];
     dgt = [];
+    delay = 100;
     ctx.fillStyle = CLR_TEXT;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
@@ -134,6 +136,19 @@ var getVal = function(l, c) {
         write(l, c, v, get(l).small, 0, CLR_PROCESSING);
     return v;
 }
+
+var getTotalVal = function(l, c) {
+    var r = 0;
+    for (i = c, m = 1;; i++) {
+        var v = getVal(l, i);
+        if (v === undefined)
+            return r;
+        r += v * m;
+        m *= 10;
+    }
+    return r;
+}
+
 var write = function(lin, col, num, small, timeout, color) {
     var str = "" + num;
     set(lin, undefined, 'small', small);
@@ -187,6 +202,13 @@ var pause = function(timeout) {
     });
 }
 
+
+var drawDivision = function(dividendo, divisor) {
+    write(1, 0, dividendo, false, 2, CLR_TEXT);
+    alert(getTotalVal(1,0));
+    return;
+
+}
 
 var drawSum = function(a, b) {
     if (b > a)
@@ -337,6 +359,10 @@ app.controller('myCtrl', function($scope, $interval, $timeout) {
     $scope.a = Math.random() > 0.5 ? '2005' : '2012';
     $scope.b = '1997';
 
+    $scope.fastForward = function() {
+      delay = 0;
+    }
+
     $scope.formula = function() {
         return $scope.a + $scope.operation + $scope.b;
     }
@@ -357,6 +383,8 @@ app.controller('myCtrl', function($scope, $interval, $timeout) {
             drawSubtraction(parseInt(a), parseInt(b));
         } else if ($scope.operation == "×") {
             drawMultiplication(parseInt(a), parseInt(b));
+        } else if ($scope.operation == ":") {
+            drawDivision(parseInt(a), parseInt(b));
         }
         if (opr.length > 0) {
             var bounds = calcBounds(opr);
@@ -383,7 +411,7 @@ app.controller('myCtrl', function($scope, $interval, $timeout) {
         //  console.log("step");
         if (opr.length) {
             opr[0].func.apply(null, opr[0].params);
-            $scope.stop = $timeout($scope.step, opr[0].timeout * 100);
+            $scope.stop = $timeout($scope.step, opr[0].timeout * delay);
             opr = opr.slice(1);
         }
     }
