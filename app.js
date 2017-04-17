@@ -46,7 +46,7 @@ var drawSigleDigit = function(digit, x, y, small, color) {
 var drawSigleLine = function(x1, y1, x2, y2) {
     ctx.beginPath();
     ctx.moveTo(x1 * scale.NUMBER_WIDTH + scale.NUMBER_WIDTH + scale.X_OFFSET + scale.LINE_WIDTH_OFFSET, get(y1).offset * scale.LINE_HEIGTH + scale.LINE_HEIGTH_OFFSET);
-    ctx.lineTo(x2 * scale.NUMBER_WIDTH + scale.NUMBER_WIDTH + scale.X_OFFSET + scale.LINE_WIDTH_OFFSET, get(y1).offset * scale.LINE_HEIGTH + scale.LINE_HEIGTH_OFFSET);
+    ctx.lineTo(x2 * scale.NUMBER_WIDTH + scale.NUMBER_WIDTH + scale.X_OFFSET + scale.LINE_WIDTH_OFFSET, get(y2).offset * scale.LINE_HEIGTH + scale.LINE_HEIGTH_OFFSET);
     ctx.stroke();
 }
 
@@ -166,14 +166,14 @@ var write = function(lin, col, num, small, timeout, color) {
     }
 }
 
-var line = function(lin, colFrom, colWidth, timeout) {
+var line = function(linTop, colLeft, linBottom, colRight, timeout) {
     opr.push({
         func: drawSigleLine,
-        params: [-colFrom - 1, lin, -colFrom - colWidth - 1, lin],
-        top: lin,
-        left: -colFrom - colWidth - 1,
-        bottom: lin,
-        right: -colFrom - 1,
+        params: [-colLeft - 1, linTop, -colRight - 1, linBottom],
+        top: linTop,
+        left: -colLeft - 1,
+        bottom: linBottom,
+        right: -colRight - 1,
         timeout: timeout
     });
 }
@@ -203,12 +203,6 @@ var pause = function(timeout) {
 }
 
 
-var drawDivision = function(dividendo, divisor) {
-    write(1, 0, dividendo, false, 2, CLR_TEXT);
-    alert(getTotalVal(1,0));
-    return;
-
-}
 
 var drawSum = function(a, b) {
     if (b > a)
@@ -216,7 +210,7 @@ var drawSum = function(a, b) {
     var lenA = ('' + a).length;
     write(1, 0, a, false, 2, CLR_TEXT);
     write(2, 0, b, false, 2, CLR_TEXT);
-    line(2, 0, lenA + 1, 2);
+    line(2, lenA + 1, 2, 0, 2);
     write(2, lenA, "+", false, 2, CLR_TEXT);
     pause(20);
 
@@ -236,38 +230,79 @@ var drawSum = function(a, b) {
     }
 }
 
-var drawSubtraction = function(a, b) {
+var drawDivision = function(a, b) {
     if (b > a)
         b = [a, a = b][0];
     var lenA = ('' + a).length;
+    var lenB = ('' + b).length;
     write(1, 0, a, false, 2, CLR_TEXT);
-    write(2, 0, b, false, 2, CLR_TEXT);
-    line(2, 0, lenA + 1, 2);
-    write(2, lenA, "-", false, 2, CLR_TEXT);
+    write(1, -lenB - 1, b, false, 2, CLR_TEXT);
+    line(1, -1, 1, -lenB - 1, 2);
+    line(0, -1, 1, -1, 2);
+    pause(20);
+
+    var i = 4;
+    for (var c = lenA; c >= 0; c--) {
+        getTotalVal(1, -lenB - 1);
+        var v = getTotalVal(1, c);
+        if (v < b)
+            continue;
+        var r = (v - v % b) / b;
+        write(2, -2, r);
+        write(2, c, r * b);
+        drawSubtraction(v, r * b, 1, c);
+
+        for (var cc = c-1; cc >= 0; cc--) {
+            getTotalVal(1, -lenB - 1); //  marca o divisor
+            write(i, cc, getVal(1, cc)); // baixa mais um algarismo
+            var vv = getTotalVal(i, cc); // pega o valor total
+            if (vv < b) {
+                write(2, -2 - c + cc, 0); // escreve um zero no resultado
+                continue;
+            }
+            var rr = (vv - vv % b) / b;
+            write(2, -2 - c + cc, rr); // escreve o multiplicador encontrado no resultado
+            write(i + 1, cc, rr * b); // escreve a multiplicação do divisor pelo algarismo para depois subtrair
+            drawSubtraction(vv, rr * b, i, cc); // subtrai
+            i+=3;
+        }
+        break;
+    }
+}
+
+
+var drawSubtraction = function(a, b, lin, col) {
+    if (b > a)
+        b = [a, a = b][0];
+    var lenA = ('' + a).length;
+    write(lin, col, a, false, 2, CLR_TEXT);
+    write(lin + 1, col, b, false, 2, CLR_TEXT);
+    line(lin + 1, lenA + 1 + col, lin + 1, col, 2);
+    write(lin + 1, lenA + col, "-", false, 2, CLR_TEXT);
     pause(20);
 
     for (var i = 0; i <= lenA; i++) {
-        var uR = getVal(0, i);
-        var uA = getVal(1, i);
-        var uB = getVal(2, i);
+        var uR = getVal(lin - 1, i + col);
+        var uA = getVal(lin, i + col);
+        var uB = getVal(lin + 1, i + col);
         pause(10);
         var r = (uA || 0) + (uR || 0) - (uB || 0);
         if (r < 0) {
             r += 10;
             for (var j = i + 1;; j++) {
-                var e = getVal(1, j);
-                write(1, j, "×", false, 10);
+                var e = getVal(lin, j + col);
+                write(lin, j + col, "×", false, 10);
                 if (e > 0) {
-                    write(0, j, e - 1, 10);
+                    write(lin - 1, j + col, e - 1, 10);
                     break;
                 } else {
-                    write(0, j, 9, 10);
+                    write(lin - 1, j + col, 9, 10);
                 }
             }
         }
         var uR = r % 10;
         if (i < lenA || uR != 0)
-            write(3, i, uR, false, 10);
+            write(lin + 3, i + col, uR, false, 10);
         eraseMarks(20);
     }
 }
@@ -280,7 +315,7 @@ var drawMultiplication = function(a, b) {
     var lenB = ('' + b).length;
     write(1, 0, a, false, 2, CLR_TEXT);
     write(2, 0, b, false, 2, CLR_TEXT);
-    line(2, 0, lenA + 1, 2);
+    line(2, lenA + 1, 2, 0, 2);
     write(2, lenA, "×", false, 2, CLR_TEXT);
     pause(20);
 
@@ -311,7 +346,7 @@ var drawMultiplication = function(a, b) {
     lenSum = lenB;
     while (get(3 + lenB, lenSum).hasOwnProperty('val'))
         lenSum++;
-    line(3 + lenB, 0, lenSum + 1, 2);
+    line(3 + lenB, lenSum + 1, 3 + lenB, 0, 2);
     write(3 + lenB, lenSum, "+", false, 2, CLR_TEXT);
     pause(20);
 
@@ -360,7 +395,7 @@ app.controller('myCtrl', function($scope, $interval, $timeout) {
     $scope.b = '1997';
 
     $scope.fastForward = function() {
-      delay = 0;
+        delay = 0;
     }
 
     $scope.formula = function() {
@@ -378,9 +413,10 @@ app.controller('myCtrl', function($scope, $interval, $timeout) {
 
         initCanvas();
         if ($scope.operation == "+") {
-            drawSum(parseInt(a), parseInt(b));
+            drawDivision(parseInt(a), parseInt(b));
+            //drawSum(parseInt(a), parseInt(b));
         } else if ($scope.operation == "-") {
-            drawSubtraction(parseInt(a), parseInt(b));
+            drawSubtraction(parseInt(a), parseInt(b), 1, 0);
         } else if ($scope.operation == "×") {
             drawMultiplication(parseInt(a), parseInt(b));
         } else if ($scope.operation == ":") {
