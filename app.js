@@ -236,33 +236,37 @@ var drawDivision = function(a, b) {
     var lenA = ('' + a).length;
     var lenB = ('' + b).length;
     write(1, 0, a, false, 2, CLR_TEXT);
-    write(1, -lenB - 1, b, false, 2, CLR_TEXT);
-    line(1, -1, 1, -lenB - 1, 2);
     line(0, -1, 1, -1, 2);
+    line(1, -1, 1, -lenB - 1, 2);
+    write(1, -lenB - 1, b, false, 2, CLR_TEXT);
     pause(20);
 
     var i = 4;
+    getTotalVal(1, -lenB - 1);
     for (var c = lenA; c >= 0; c--) {
-        getTotalVal(1, -lenB - 1);
-        var v = getTotalVal(1, c);
-        if (v < b)
+        var v = getTotalVal(1, c); // le os primeiros algarismos do dividendo
+        if (v < b) // pega mais algarismos até que seja igual ou maior que o divisor
             continue;
-        var r = (v - v % b) / b;
-        write(2, -2, r);
-        write(2, c, r * b);
-        drawSubtraction(v, r * b, 1, c);
+        pause(20);
+        var r = (v - v % b) / b; // calcula quantas vezes o divisor cabe nos algarismos selecionados
+        write(2, -2, r, false, 10); // escreve um algarismo do resultado
+        write(2, c, r * b, false, 2); // escreve a multiplicação do divisor pelo algarismo encontrado para depois subtrair
+        eraseMarks(0);
+        drawSubtraction(v, r * b, 1, c); // faz a primeira substituição
 
         for (var cc = c-1; cc >= 0; cc--) {
             getTotalVal(1, -lenB - 1); //  marca o divisor
-            write(i, cc, getVal(1, cc)); // baixa mais um algarismo
+            write(i, cc, getVal(1, cc), false, 10); // baixa mais um algarismo
             var vv = getTotalVal(i, cc); // pega o valor total
             if (vv < b) {
-                write(2, -2 - c + cc, 0); // escreve um zero no resultado
+                write(2, -2 - c + cc, 0, false, 10); // escreve um zero no resultado
                 continue;
             }
+            pause(20);
             var rr = (vv - vv % b) / b;
-            write(2, -2 - c + cc, rr); // escreve o multiplicador encontrado no resultado
-            write(i + 1, cc, rr * b); // escreve a multiplicação do divisor pelo algarismo para depois subtrair
+            write(2, -2 - c + cc, rr, false, 10); // escreve o multiplicador encontrado no resultado
+            write(i + 1, cc, rr * b, false, 2); // escreve a multiplicação do divisor pelo algarismo para depois subtrair
+            eraseMarks(0);
             drawSubtraction(vv, rr * b, i, cc); // subtrai
             i+=3;
         }
@@ -413,8 +417,7 @@ app.controller('myCtrl', function($scope, $interval, $timeout) {
 
         initCanvas();
         if ($scope.operation == "+") {
-            drawDivision(parseInt(a), parseInt(b));
-            //drawSum(parseInt(a), parseInt(b));
+            drawSum(parseInt(a), parseInt(b));
         } else if ($scope.operation == "-") {
             drawSubtraction(parseInt(a), parseInt(b), 1, 0);
         } else if ($scope.operation == "×") {
